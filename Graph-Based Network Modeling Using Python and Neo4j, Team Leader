@@ -1,0 +1,217 @@
+报告四、社交网络
+一、	开发语言和环境
+1、开发技术：
+2、开发环境：
+二、	系统分析
+1、需求分析：从《权力的游戏》的关系背景出发，通过图论的基础发现社区的存在，并度量各种中心性，划分出最短路径。
+2、系统结构：1. 读取数据，构建关系图
+				2. 计算各类指标并输出
+				3. 划分社区
+三、	主要代码：
+7、读取数据集
+  运行代码：
+# -*- coding: utf-8 -*-
+import pandas as pd
+from igraph import Graph as IGraph
+
+df = pd.read_csv('stormofswords.csv')
+print(df.columns)
+edges = []
+for index, rows in df.iterrows():
+   edges.append((rows['Source'], rows['Target'], int(rows['Weight'])))
+
+g = IGraph.TupleList(edges=edges, directed=False, vertex_name_attr="name", edge_attrs=None, weights=True)
+
+
+def get_graphData(graph):
+   names = graph.vs["name"]
+   weights = graph.es["weight"]
+   print('人物名字：', names[:10])
+   print('关系权重：', weights[:10])
+   return names, weights
+
+
+names, weights = get_graphData(g)
+print('--------------------------------------------------------------------------------------------')
+print('角色数：', g.vcount())
+print('网格直径：', g.diameter())
+print('直径上的角色：', [names[x] for x in g.get_diameter()])
+print('--------------------------------------------------------------------------------------------')
+print('--------------------------------------------------------------------------------------------')
+# 最短路径
+print('其中一条最短路径：', [names[x] for x in g.get_shortest_paths('Catelyn', 'Drogo')[0]])
+print('\r所有最短路径：')
+paths = g.get_all_shortest_paths('Catelyn', 'Drogo')
+for p in paths:
+   print([names[x] for x in p])
+print('--------------------------------------------------------------------------------------------')
+
+
+def Degree_Centrality(g):
+   p = list(zip(g.vs['name'], g.vs.degree()))
+   p_sort = sorted(p, key=lambda p: p[1], reverse=True)
+   return p_sort
+
+
+# 加权度中心性
+def Weighted_Degree_Centrality(g, edges):
+   WDC = []
+   for p in g.vs:
+       neighbors = [x['name'] for x in p.neighbors()]
+       weightdDegree = sum(
+           [w for a, b, w in edges for c in neighbors if (a == p['name'] and b == c) or (b == p['name'] and a == c)])
+       WDC.append([p['name'], weightdDegree])
+   WDC_sort = sorted(WDC, key=lambda p: p[1], reverse=True)
+   return WDC_sort
+
+
+# 邻居平均度
+def Neighbor_Average_Degree(g):
+   p = list(zip(g.vs['name'], g.knn()[0]))
+   p_sort = sorted(p, key=lambda p: p[1], reverse=True)
+   return p_sort
+
+
+# 介数中心性
+def Betweenness_Centrality(g):
+   p = list(zip(g.vs['name'], g.betweenness()))
+   p_sort = sorted(p, key=lambda p: p[1], reverse=True)
+   return p_sort
+
+
+# 紧度中心性
+def Closeness_Centrality(g):
+   p = list(zip(g.vs['name'], g.closeness()))
+   p_sort = sorted(p, key=lambda p: p[1], reverse=True)
+   return p_sort
+
+
+# PageRank算法
+def PageRank(g):
+   p = list(zip(g.vs['name'], g.pagerank()))
+   p_sort = sorted(p, key=lambda p: p[1], reverse=True)
+   return p_sort
+
+
+print('--------------------------------------------------------------------------------------------')
+# 中心性度量
+print('度中心性：', Degree_Centrality(g)[:10])
+print('加权度中心性：', Weighted_Degree_Centrality(g, edges)[:10])
+print('邻居平均度：', Neighbor_Average_Degree(g)[:10])
+print('介数中心性：', Betweenness_Centrality(g)[:10])
+print('紧度中心性：', Closeness_Centrality(g)[:10])
+print('PageRank算法', PageRank(g)[:10])
+print('--------------------------------------------------------------------------------------------')
+
+
+def Community_Detection(g):
+   clusters = IGraph.community_walktrap(g, weights="weight").as_clustering()
+   n = len(clusters.sizes())
+   for i in range(n):
+       print('Community', i, ':', [g.vs['name'][j] for j in clusters[i]])
+   return clusters
+
+
+print('--------------------------------------------------------------------------------------------')
+print('社区划分结果：')
+Community_Detection(g)
+
+运行结果：
+    
+8、权力游戏网络图
+运行代码：
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
+import pandas as pd
+
+df = pd.read_csv('stormofswords.csv')
+G = nx.MultiGraph()
+edges = []
+for index, rows in df.iterrows():
+   G.add_edge(rows['Source'], rows['Target'], time=int(rows['Weight']))
+
+nx.draw(G, with_labels=True)
+plt.show()
+
+运行结果：
+ 
+
+9、蛋白质
+# -*- coding: utf-8 -*-
+import pandas as pd
+from igraph import Graph as IGraph
+
+df1 = pd.read_csv('protein1.csv')
+df2 = pd.read_csv('protein2.csv')
+df = pd.concat([df1, df2], ignore_index=True)
+print(df.columns)
+edges = []
+for index, rows in df.iterrows():
+   edges.append((rows['Source'], rows['Target'], float(rows['score'])))
+g = IGraph.TupleList(edges=edges, directed=False, vertex_name_attr="name", edge_attrs=None, weights=True)
+
+
+def get_graphData(graph):
+   names = graph.vs["name"]
+   weights = graph.es["weight"]
+   print('名字：', names[:10])
+   print('关系权重：', weights[:10])
+   return names, weights
+
+
+names, weights = get_graphData(g)
+print('--------------------------------------------------------------------------------------------')
+print('蛋白质数：', g.vcount())
+print('网格直径：', g.diameter())
+print('直径上的蛋白质：', [names[x] for x in g.get_diameter()])
+print('--------------------------------------------------------------------------------------------')
+
+print('--------------------------------------------------------------------------------------------')
+# 最短路径
+print('其中一条最短路径：', [names[x] for x in g.get_shortest_paths('ARHGEF1', 'ADAP2')[0]])
+print('\r所有最短路径：')
+paths = g.get_all_shortest_paths('ARHGEF1', 'ADAP2')
+for p in paths:
+   print([names[x] for x in p])
+print('--------------------------------------------------------------------------------------------')
+
+
+# 紧度中心性
+def Closeness_Centrality(g):
+   p = list(zip(g.vs['name'], g.closeness()))
+   p_sort = sorted(p, key=lambda p: p[1], reverse=True)
+   return p_sort
+
+
+print('--------------------------------------------------------------------------------------------')
+'''
+new = []
+for i in Closeness_Centrality(g)[:104]:
+   a = i[0]
+   for j in range(len(edges)):
+       if a == edges[j][0]:
+           if a == 'KRTAP21-1' or 'KRTAP20-2' or 'FAM47E' or 'C1orf61':
+               continue
+           new.append(edges[j])
+new = list(new)
+pd.DataFrame(new).to_csv('protein.csv')
+'''
+print('紧度中心性：', Closeness_Centrality(g)[:20])
+print('--------------------------------------------------------------------------------------------')
+
+
+def Community_Detection(g):
+   clusters = IGraph.community_walktrap(g, weights="weight").as_clustering()
+   n = len(clusters.sizes())
+   for i in range(n):
+       print('Community', i, ':', [g.vs['name'][j] for j in clusters[i]])
+   return clusters
+
+
+print('--------------------------------------------------------------------------------------------')
+print('社区划分结果：')
+Community_Detection(g)
+
+运行结果：
+   
